@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Ophthalmology Program Master</title>
+<style>
+:root{--bg:#fafaf8;--fg:#1d1d1b;--mut:#6b6b66;--line:#dcdcd5;--card:#fff;--acc:#1f5f8b;--warn:#a05a00;--bad:#a12d2d;--ok:#2d6a3e}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--fg:#ecece8;--mut:#9a9a93;--line:#34342f;--card:#1f1f1d;--acc:#6db2e3;--warn:#e0a24a;--bad:#e07a7a;--ok:#7ccb92}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px 16px 8px;max-width:1300px;margin:0 auto}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:17px;margin:22px 0 8px}h3{font-size:15px;margin:16px 0 6px}
+.sub{color:var(--mut);font-size:13px}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:0 16px 8px;max-width:1300px;margin:0 auto;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;padding:8px 10px;font:inherit;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent}
+nav button.on{color:var(--fg);border-color:var(--acc);font-weight:600}
+main{padding:8px 16px 60px;max-width:1300px;margin:0 auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px}
+.big{font-size:28px;font-weight:700;color:var(--acc)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);max-height:75vh;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 9px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:var(--card);font-weight:600;white-space:nowrap;z-index:1}
+th.s{cursor:pointer}
+tr.p{cursor:pointer}tr.p:hover td{background:rgba(127,127,127,.07)}
+tr:last-child td{border-bottom:0}
+.tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);margin:0 3px 2px 0;white-space:nowrap}
+.stale{color:var(--bad);border-color:var(--bad)}.conflict,.mixed,.undated{color:var(--warn);border-color:var(--warn)}.current{color:var(--ok);border-color:var(--ok)}
+.note{background:var(--card);border-left:3px solid var(--warn);padding:8px 12px;margin:10px 0;font-size:13.5px}
+.bar{height:8px;background:var(--acc);border-radius:4px;min-width:2px}
+ul{padding-left:20px;margin:6px 0}li{margin:3px 0}
+input[type=text],input[type=search],select{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+button.b{font:inherit;padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);cursor:pointer}
+td input[type=text]{width:100%;min-width:140px}
+.mut{color:var(--mut)}
+a{color:var(--acc)}
+.det td{background:rgba(127,127,127,.05)}
+.dg{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.dg h4{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+.kv{margin:0 0 4px;font-size:13.5px}.kv b{font-weight:600}
+.n{white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ophthalmology Program Master</h1>
+  <div class="sub" id="sub"></div>
+</header>
+<nav id="tabs"></nav>
+<main id="view"></main>
+<script src="data.js"></script>
+<script src="programs.js"></script>
+<script src="facts.js"></script>
+<script src="fund.js"></script>
+<script src="intern.js"></script>
+<script>
+(function(){
+const IN = window.INTERN||{}, FD = window.FUND||{}, FX = window.FACTS||{}, D = window.DATA, P = window.PROGRAMS, EV = window.EVIDENCE, CF = window.CONFLICTS, UN = window.UNCONF, AU = window.AUDIT, QL = window.QUALITY;
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const TABS=[["overview","Overview"],["programs","Programs"],["facts","Program facts"],["fund","Funding & outcomes"],["intern","Intern year"],["mdphd","MD/PhD + K"],["calendar","Calendar & rules"],["stats","Match stats"],["tracks","Research tracks"],["questions","Resident questions"],["quality","Reliability & conflicts"],["recheck","Recheck & open items"]];
+const links = (u,label)=> (u||[]).map((x,i)=>'<a href="'+esc(x)+'" target="_blank" rel="noopener">'+esc(label||'src')+(u.length>1?(' '+(i+1)):'')+'</a>').join(' ');
+const table=(head,rows)=>'<div class="tw"><table><thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+(typeof c==='object'&&c&&c.html!=null?c.html:esc(c))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+const H = s => ({html:s});
+const kProgs = P.filter(p=>p.k>0).sort((a,b)=>b.k-a.k||a.name.localeCompare(b.name));
+const kTotal = P.reduce((a,p)=>a+p.k,0), namedTotal = P.reduce((a,p)=>a+p.namedN,0);
+const short = n => String(n).replace(/ (Medical Center|Health System|Hospital).*$/,"");
+$("#sub").textContent = "Built "+D.meta.built+" for the "+D.meta.targetCycle+" cycle. Observed cycle: "+D.meta.observedCycle+". "+P.length+" programs with at least one named MD/PhD graduate.";
+
+const V = {};
+V.overview = () => {
+  const h=D.k.headline, cur=P.filter(p=>p.cycle==='current').length, st=P.filter(p=>p.cycle==='stale'||p.cycle==='mixed').length;
+  return `<div class="cards">
+    <div class="card"><div class="big">${kProgs.length} / ${P.length}</div><div>programs with a verified MD/PhD graduate holding a K-type award (${esc(h.window)})</div></div>
+    <div class="card"><div class="big">${kTotal}</div><div>graduates with a K award (${h.withoutGokoffski} if Gokoffski's 2016 residency year, at the window edge, is excluded). Three of these (Hwang, Do, Rudell) have the residency year inferred from faculty-start timing or a directory, labeled in the evidence table</div></div>
+    <div class="card"><div class="big">${namedTotal}</div><div>MD/PhD graduates named with evidence (a floor, not a census)</div></div>
+    <div class="card"><div class="big">${cur} / ${P.length}</div><div>programs with 2026-27 application details; ${st} have stale pages, so their dates are blank</div></div>
+    <div class="card"><div class="big">${D.stats.rows[4][1][7]}</div><div>matched in 2026 of ${D.stats.rows[2][1][7]} rank lists (${D.stats.rows[5][1][7]}), ${D.stats.rows[7][1][7]} positions</div></div>
+    <div class="card"><div class="big">15</div><div>signals this cycle; 15 interviews max per applicant; all interviews virtual</div></div>
+  </div>
+  <div class="note">${esc(D.meta.note)}</div>
+  <h2>What is in this site</h2>
+  <ul>
+    <li><b>Programs</b>: the ${P.length} programs with a named MD/PhD graduate, with filters; click a row for every field and source links. Your tier, apply, signal and notes columns are saved in this browser.</li>
+    <li><b>MD/PhD + K</b>: counts by program, ${EV.length} confirmed MD/PhD graduates, and the verified K holders.</li>
+    <li><b>Calendar & rules</b>, <b>Match stats</b>, <b>Research tracks</b>, <b>Resident questions</b>.</li>
+    <li><b>Reliability & conflicts</b>: how far each column can be trusted, page-vs-FREIDA conflicts.</li>
+    <li><b>Recheck & open items</b>: pages to refresh when 2027-28 information posts.</li>
+  </ul>
+  <h2>Sources</h2>
+  <ul>${D.meta.sources.map(s=>'<li>'+(s[1]?'<a href="'+esc(s[1])+'" target="_blank" rel="noopener">'+esc(s[0])+'</a>':esc(s[0]))+'</li>').join('')}</ul>`;
+};
+
+// ---------- programs ----------
+let sortKey="name", sortDir=1, openId=null;
+const COLS=[["name","Program"],["state","St"],["k","K grads"],["namedN","MD/PhD named"],["lenPage","Length (page)"],["resPage","Class/yr (page)"],["intern","Intern year"],["deadline","Deadline"],["interviews","Interviews"],["signals","Signals"]];
+const trunc=(s,n)=>{s=String(s==null?"":s);return s.length>n?s.slice(0,n-1)+"…":s};
+V.programs = () => {
+  const states=[...new Set(P.map(p=>p.state))].sort();
+  return `<h2>Programs</h2>
+  <div class="note">Blank dates mean the page was stale or had no cycle year, so nothing is shown rather than something that may be wrong. Your tier, apply, signal and notes are saved in this browser only.</div>
+  <div class="ctl">
+    <input type="search" id="q" placeholder="Search anything...">
+    <select id="st"><option value="">All states</option>${states.map(s=>'<option>'+esc(s)+'</option>').join('')}</select>
+    <select id="f"><option value="">All programs</option><option value="k">Has K grad</option><option value="md">Has MD/PhD named</option><option value="cur">Current 2026-27 page</option><option value="stale">Stale or mixed page</option><option value="conf">Length/size conflict</option><option value="acc">New or on warning</option><option value="signal">Signaled</option><option value="apply">Applying</option></select>
+    <span id="cnt" class="mut"></span><span id="sigcount" class="mut"></span>
+    <button class="b" id="exp">Export my columns</button><button class="b" id="exptab">Export table CSV</button>
+  </div>
+  <div class="tw"><table id="pt"><thead></thead><tbody></tbody></table></div>`;
+};
+const kv=(l,v)=> v?'<div class="kv"><b>'+esc(l)+':</b> '+esc(v)+'</div>':'';
+function detail(p){
+  const lenTxt = p.lenPage||p.lenFreida ? ((p.lenPage||'not stated')+(p.lenFreida?' (FREIDA '+p.lenFreida+')':'')):'';
+  const cyc = p.cycle==='current'?'current 2026-27':p.cycle==='stale'?'stale (prior cycle)':p.cycle==='mixed'?'mixed: some current values, rest withheld':p.cycle==='undated'?'undated':'no application info';
+  const ev = EV.filter(e=>e.id===p.id);
+  return '<div class="dg">'+
+   '<div><h4>Identity</h4>'+kv('City',p.city)+kv('State',p.state)+kv('Sponsor',p.sponsor)+kv('ACGME status',p.accr)+kv('Flag',p.newFlag&&p.newFlag!=='no'?p.newFlag:'')+'</div>'+
+   '<div><h4>Size and structure</h4>'+kv('Length',lenTxt)+kv('Residents/yr (page)',p.resPage)+kv('Positions (FREIDA)',p.posFreida)+kv('Conflict',p.conflict&&!/^none/i.test(p.conflict)?p.conflict:'')+kv('Intern year',p.intern)+kv('Intern site',p.internSite)+kv('Entry level',p.entry)+'</div>'+
+   '<div><h4>Training and research</h4>'+kv('Research',p.research)+kv('MD/PhD stance',p.mdphdStance)+kv('Outcomes (program claims)',p.outcomes)+'</div>'+
+   '<div><h4>Application ('+esc(cyc)+')</h4>'+kv('Deadline',p.deadline)+kv('Signaling',p.signals)+kv('Supplemental',p.supp)+kv('Step 2',p.step2)+kv('Interviews',p.interviews)+kv('Open house',p.openHouse)+kv('Visa',p.visa)+kv('Mechanics',p.mech)+kv('Page cycle note',p.pageCycle)+kv('Staleness note',p.staleness)+
+     (p.scrubbed.length?'<div class="kv mut">Withheld as prior-cycle or undated-stale: '+esc(p.scrubbed.join(', '))+'</div>':'')+(p.fromSummary.length?'<div class="kv mut">From Oct 2026 project summary (verify on page): '+esc(p.fromSummary.join(', '))+'</div>':'')+'</div>'+
+   '<div><h4>MD/PhD and K</h4>'+kv('MD/PhD named 2016-26',p.named)+kv('With K-type award',p.k)+kv('Roster coverage',p.rosterCov)+kv('Roster confidence',p.rosterConf)+kv('Current MD/PhD residents',p.currentMdphd)+kv('Roster notes',p.rosterNotes)+kv('Legacy hand counts (superseded)',p.legacyMd||p.legacyK?('MD/PhD '+p.legacyMd+', K '+p.legacyK):'')+kv('Count disagreement',p.disagree)+
+     (ev.length?'<div class="kv"><b>Named graduates:</b> '+ev.map(e=>esc(e.grad)+' ('+esc(e.cls)+(e.hasK==='Y'?', K':'')+')').join('; ')+'</div>':'')+'</div>'+
+   '<div><h4>Funding flags</h4>'+kv('Active K awards (FY25)',p.kActive)+kv('P30',p.p30)+kv('T32',p.t32)+kv('K12',p.k12)+kv('R38/R25',p.r38)+kv('Audited facts',p.audited)+'</div>'+
+   '<div><h4>Context</h4>'+kv('Cost of living index',p.col)+kv('Rent',p.rent)+kv('Travel from Philadelphia',p.travel)+'</div>'+
+   '<div><h4>Sources</h4>'+(p.urls.length?links(p.urls):'<span class="mut">none recorded</span>')+kv('Pages read',p.pagesRead)+'</div>'+
+   '</div>';
+}
+function bindPrograms(){
+  const user=()=>store.get("ophtho_user",{});
+  const render=()=>{
+    const u=user(), q=($("#q").value||"").toLowerCase(), f=$("#f").value, st=$("#st").value;
+    let list=P.filter(p=>{
+      const m=u[p.id]||{};
+      if(q){const hay=(p.name+" "+p.city+" "+p.state+" "+p.research+" "+p.mdphdStance+" "+p.deadline+" "+p.interviews+" "+p.signals+" "+p.visa+" "+p.rosterNotes+" "+(m.notes||"")).toLowerCase(); if(hay.indexOf(q)<0)return false}
+      if(st&&p.state!==st)return false;
+      if(f==="k"&&!(p.k>0))return false;
+      if(f==="md"&&!(p.namedN>0))return false;
+      if(f==="cur"&&p.cycle!=="current")return false;
+      if(f==="stale"&&!(p.cycle==="stale"||p.cycle==="mixed"))return false;
+      if(f==="conf"&&!(p.conflict&&!/^none|cannot/i.test(p.conflict)))return false;
+      if(f==="acc"&&!(p.newFlag&&p.newFlag!=="no"))return false;
+      if(f==="signal"&&!m.signal)return false;
+      if(f==="apply"&&m.apply!=="Y")return false;
+      return true;});
+    list.sort((a,b)=>{let x=a[sortKey],y=b[sortKey];
+      if(typeof x==="number"||typeof y==="number"){return ((+x||0)-(+y||0))*sortDir*-1}
+      return String(x||"").localeCompare(String(y||""))*sortDir});
+    $("#pt thead").innerHTML='<tr>'+COLS.map(c=>'<th class="s" data-k="'+c[0]+'">'+c[1]+(sortKey===c[0]?(sortDir>0?" ▲":" ▼"):"")+'</th>').join('')+'<th>Page</th><th>Flags</th><th>Tier</th><th>Apply</th><th>Signal</th><th>My notes</th></tr>';
+    $("#pt tbody").innerHTML=list.map(p=>{const m=u[p.id]||{};
+      const flags=[]; if(p.conflict&&!/^none|cannot/i.test(p.conflict))flags.push('<span class="tag conflict">conflict</span>'); if(p.newFlag&&p.newFlag!=='no')flags.push('<span class="tag conflict">'+esc(/WARN/.test(p.newFlag)?'warning':'new')+'</span>');
+      let row='<tr class="p" data-id="'+p.id+'">'+COLS.map(c=>'<td'+(c[0]==="name"?' class="n"':'')+'>'+esc(c[0]==="name"?short(p.name):trunc(p[c[0]]==null?"":p[c[0]],c[0]==="k"||c[0]==="namedN"?20:60))+'</td>').join('')+
+        '<td><span class="tag '+p.cycle+'">'+p.cycle+'</span></td><td>'+flags.join('')+'</td>'+
+        '<td><select data-f="tier">'+["","Reach","Target","Safety"].map(o=>'<option'+(m.tier===o?' selected':'')+'>'+o+'</option>').join('')+'</select></td>'+
+        '<td><select data-f="apply">'+["","Y","N","?"].map(o=>'<option'+(m.apply===o?' selected':'')+'>'+o+'</option>').join('')+'</select></td>'+
+        '<td><input type="checkbox" data-f="signal"'+(m.signal?' checked':'')+'></td>'+
+        '<td><input type="text" data-f="notes" value="'+esc(m.notes||"")+'"></td></tr>';
+      if(openId===p.id)row+='<tr class="det"><td colspan="'+(COLS.length+6)+'">'+detail(p)+'</td></tr>';
+      return row}).join('');
+    const used=Object.values(u).filter(x=>x.signal).length;
+    $("#cnt").textContent=list.length+" of "+P.length+" shown";
+    $("#sigcount").textContent="Signals marked: "+used+" / 15"+(used>15?" (over the cap)":"");
+  };
+  render();
+  $("#q").addEventListener("input",render); $("#f").addEventListener("change",render); $("#st").addEventListener("change",render);
+  $("#pt thead").addEventListener("click",e=>{const k=e.target.dataset&&e.target.dataset.k; if(!k)return;
+    if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=1} render();});
+  $("#pt tbody").addEventListener("click",e=>{const t=e.target; if(t.closest("select,input,a"))return; const tr=t.closest("tr.p"); if(!tr)return;
+    openId=openId===tr.dataset.id?null:tr.dataset.id; render();});
+  $("#pt tbody").addEventListener("change",e=>{const t=e.target, tr=t.closest("tr.p"); if(!tr||!t.dataset.f)return;
+    const u=user(), n=tr.dataset.id; u[n]=u[n]||{}; u[n][t.dataset.f]=t.type==="checkbox"?t.checked:t.value; store.set("ophtho_user",u);
+    if(t.dataset.f==="signal"||t.dataset.f==="apply")render();});
+  $("#pt tbody").addEventListener("input",e=>{const t=e.target; if(!t.dataset||t.dataset.f!=="notes")return;
+    const u=user(), n=t.closest("tr.p").dataset.id; u[n]=u[n]||{}; u[n].notes=t.value; store.set("ophtho_user",u);});
+  const dl=(name,text,type)=>{const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:type})); a.download=name; a.click()};
+  $("#exp").onclick=()=>{const u=user(), out={}; P.forEach(p=>{if(u[p.id])out[p.name]=u[p.id]}); dl("my-columns.json",JSON.stringify(out,null,2),"application/json")};
+  $("#exptab").onclick=()=>{const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"', u=user();
+    const cols=COLS.map(c=>c[0]).concat(["cycle"]);
+    dl("programs.csv",[COLS.map(c=>c[1]).concat(["Page","Tier","Apply","Signal","My notes"]).join(",")].concat(P.map(p=>{const m=u[p.id]||{};return cols.map(c=>q(p[c])).concat([q(m.tier),q(m.apply),q(m.signal?"Y":""),q(m.notes)]).join(",")})).join("\n"),"text/csv")};
+}
+
+// ---------- MD/PhD + K ----------
+V.mdphd = () => {
+  const kRows=EV.filter(e=>e.hasK==="Y").sort((a,b)=>a.program.localeCompare(b.program));
+  return `<div class="cards">
+    <div class="card"><div class="big">${kProgs.length}</div><div>programs (rows below sum to ${kTotal} graduates)</div></div>
+    <div class="card"><div class="big">${namedTotal}</div><div>MD/PhD graduates named (3 with residency year inferred) (a floor, not a census)</div></div></div>
+  <h2>Programs with a verified MD/PhD K holder</h2>`+
+  table(["Program","Graduates with K","MD/PhD named","Roster confidence"],kProgs.map(p=>[short(p.name),p.k,p.namedN,p.rosterConf]))+
+  `<h3>Most MD/PhD graduates named</h3>`+table(["Program","Named"],P.slice().sort((a,b)=>b.namedN-a.namedN).slice(0,8).map(p=>[short(p.name),p.namedN]))+
+  `<h2>Verified K holders (${kRows.length})</h2>`+
+  table(["Program","Graduate","Class","K award","Audit","Found by","Evidence"],kRows.map(e=>[short(e.program),e.grad,e.cls,e.kAward,e.audit,e.foundBy,H(links(e.urls,'evidence'))]))+
+  `<h2>All named graduates</h2><div class="ctl"><input type="search" id="eq" placeholder="Filter by name, program, class..."><select id="ef"><option value="">All</option><option value="K">Has K</option></select><span id="ecnt" class="mut"></span></div><div id="etab"></div>`+
+  `<h2>K99/R00 screen</h2><p>${esc(D.k.k99)}</p><h2>Method</h2><ul>${D.k.method.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul>`;
+};
+function bindMdphd(){
+  const render=()=>{const q=($("#eq").value||"").toLowerCase(), f=$("#ef").value;
+    const rows=EV.filter(e=>{ if(q&&(e.program+" "+e.grad+" "+e.cls+" "+e.notes).toLowerCase().indexOf(q)<0)return false;
+      if(f==="K"&&e.hasK!=="Y")return false; return true});
+    $("#ecnt").textContent=rows.length+" of "+EV.length;
+    $("#etab").innerHTML=table(["Program","Graduate","Class","K award","Audit","Notes","Evidence"],rows.map(e=>[short(e.program),e.grad,e.cls,e.kAward,e.audit,e.notes,H(links(e.urls,'evidence'))]))};
+  render(); $("#eq").addEventListener("input",render); $("#ef").addEventListener("change",render);
+}
+
+V.calendar = () => `<h2>Calendar</h2>`+table(["Milestone","2025-26 (observed)","2026-27 (observed)","2027-28"],D.calendar)+`<h2>2026-27 rules</h2><ul>${D.rules.map(r=>'<li>'+esc(r)+'</li>').join('')}</ul>`;
+V.stats = () => {
+  const s=D.stats, mr=s.rows[5][1].map(x=>parseInt(x,10));
+  return `<h2>National match, 2019-2026</h2>`+table(["", ...s.years], s.rows.map(r=>[r[0], ...r[1]]))+
+    `<h3>Match rate by year</h3><div class="tw" style="padding:10px">`+s.years.map((y,i)=>`<div style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:40px">${y}</span><div class="bar" style="width:${mr[i]*5}px"></div><span>${mr[i]}%</span></div>`).join('')+`</div>`+
+    `<h2>2026 detail</h2>`+table(["Item","Value"],s.detail2026);
+};
+V.tracks = () => `<h2>Physician-scientist paths</h2>`+table(["Program","Track","Details"],D.tracks)+
+  `<h3>Research and MD/PhD text from program pages</h3>`+table(["Program","Research time / track","MD/PhD stance"],P.filter(p=>p.research||p.mdphdStance).filter(p=>!/^(not stated|none)/i.test(p.mdphdStance)||!/^(no protected|not stated)/i.test(p.research)).map(p=>[short(p.name),trunc(p.research,160),trunc(p.mdphdStance,160)]));
+V.questions = () => `<h2>Questions for current and recent residents</h2><div class="ctl"><button class="b" id="copyq">Copy all</button></div>
+  <ul>${D.questionTips.map(t=>'<li class="mut">'+esc(t)+'</li>').join('')}</ul>`+D.questions.map(c=>'<h3>'+esc(c[0])+'</h3><ul>'+c[1].map(q=>'<li>'+esc(q)+'</li>').join('')+'</ul>').join('');
+V.quality = () => `<h2>How far to trust each column</h2>`+table(["Column group","Source","How verified","Reliability","Known limits"],QL)+
+  `<h2>Audit differences for these programs</h2><p class="mut">Cells where an independent check disagreed with the first read.</p>`+
+  table(["Program","Field","Audit value","First-pass value","Notes","Source"],AU.different.map(d=>[short(d.program),d.field,trunc(d.audit,120),trunc(d.first,120),d.notes,H(links(d.urls))]))+
+  `<h2>Length / class-size conflicts vs FREIDA (${CF.length}); the official page is the reference</h2>`+table(["Program","Conflict (official page vs FREIDA)","Source"],CF.map(c=>[short(c.program),c.text,H(links(c.urls))]));
+V.facts = () => {
+  const rows=P.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  return `<h2>Program facts</h2><p class="note">Stated on the program's own pages only. Blank means the page did not say, or the page was blocked or out of date. Resident counts are MD/PhDs on the roster page shown in the Roster column; a roster without degrees listed is left blank, and a count marked "min" may be higher.</p>
+  <div class="ctl"><input id="fq" placeholder="Filter programs"></div><div id="ftab"></div>`;
+};
+function bindFacts(){
+  const draw=()=>{const q=($("#fq").value||"").toLowerCase();
+    const rows=P.filter(p=>!q||(p.name+" "+p.city+" "+p.state).toLowerCase().indexOf(q)>=0).sort((a,b)=>a.name.localeCompare(b.name));
+    $("#ftab").innerHTML=table(["Program","Positions/yr","Years","Intern year","Research time / track","Funding","MD/PhD stance","MD/PhD residents now","Roster","Sources"],
+      rows.map(p=>{const x=FX[p.id]||{};
+        const n=x.n===""||x.n==null?"":(x.n+(x.names&&x.names.length?" ("+x.names.join(", ")+")":""));
+        return [short(p.name)+", "+p.state,String(x.pos==null?"":x.pos),String(x.len==null?"":x.len),x.intern||"",[x.research,x.track?("Track: "+x.track):""].filter(Boolean).join(" | "),x.funding||"",x.stance||"",n,x.cycle||x.sig||"",H(links(x.src,"page"))]}))};
+  $("#fq").oninput=draw; draw();
+}
+V.fund = () => `<h2>Institutional career-development funding and published outcomes</h2>
+ <p class="note">Award numbers, institutions and years are checked in NIH RePORTER (fiscal year range shown). "Active" means funded in FY2025 or FY2026. Outcomes appear only where a program page or grant abstract states numbers.</p>
+ <div class="ctl"><input id="gq" placeholder="Filter programs"> <label><input type="checkbox" id="gk"> Has active K12</label> <label><input type="checkbox" id="go"> Has outcomes data</label></div><div id="gtab"></div>`;
+function bindFund(){
+  const aw=(a)=>a.length?a.map(x=>(x.num||"stated, no number found")+(x.org?" ("+x.org+", "+x.status+")":" ("+x.status+")")).join("; "):"";
+  const draw=()=>{const q=($("#gq").value||"").toLowerCase(),k=$("#gk").checked,o=$("#go").checked;
+    const rows=P.filter(p=>{const f=FD[p.id]||{k12:[],t32:[],r38:[],other:[]};
+      if(q&&(p.name+" "+p.state).toLowerCase().indexOf(q)<0)return false;
+      if(k&&!(f.k12||[]).some(x=>x.status.indexOf("active")===0))return false;
+      if(o&&!f.outcomes)return false; return true}).sort((a,b)=>a.name.localeCompare(b.name));
+    $("#gtab").innerHTML=table(["Program","K12 (career development)","R38 / StARR","Other resident research support","Published outcomes"],
+      rows.map(p=>{const f=FD[p.id]||{k12:[],t32:[],r38:[],other:[],outcomes:null};
+        const oc=f.outcomes?H('<div>'+esc(f.outcomes.summary)+'</div><div class="note">Period: '+esc(f.outcomes.period)+'. Denominator: '+esc(f.outcomes.denominator)+'. '+links([f.outcomes.source],'source')+'</div>'):"";
+        return [short(p.name)+", "+p.state,aw(f.k12||[]),aw(f.r38||[]),H((f.other||[]).map(x=>'<div>'+esc(x.what)+' '+links([x.src],'src')+'</div>').join("")),oc]}))};
+  ["gq","gk","go"].forEach(id=>{$("#"+id).oninput=draw;$("#"+id).onchange=draw}); draw();
+}
+V.intern = () => `<h2>Intern year (PGY-1)</h2>
+ <p class="note">From each program's own pages and the partner internship program's page. Blank means the page did not say. "Integrated" means the PGY-1 year is part of the ophthalmology match; "separate" and "joint" mean a second match or application. Check a program's own page before relying on a rotation list.</p>
+ <div class="ctl"><input id="iq" placeholder="Filter programs"> <select id="ib"><option value="">Any base specialty</option><option>Medicine</option><option>Surgery</option><option>Transitional year</option><option>Preliminary medicine</option><option>Ophthalmology-designed (mixed)</option></select></div><div id="itab"></div>`;
+function bindIntern(){
+  const draw=()=>{const q=($("#iq").value||"").toLowerCase(),b=$("#ib").value;
+    const rows=P.filter(p=>{const x=IN[p.id]||{};if(q&&(p.name+" "+p.state).toLowerCase().indexOf(q)<0)return false;if(b&&x.base!==b)return false;return true}).sort((a,c)=>a.name.localeCompare(c.name));
+    $("#itab").innerHTML=table(["Program","Base","How it is matched","Where","Ophtho months","Rotations","Call / schedule","Caveat","Sources"],
+      rows.map(p=>{const x=IN[p.id]||{};return [short(p.name)+", "+p.state,x.base||"",[x.structure,x.match].filter(Boolean).join(". "),x.sites||"",x.oph||"",x.rot||"",x.call||"",[x.caveat,x.date&&("Page: "+x.date)].filter(Boolean).join(" "),H(links(x.src,"page"))]}))};
+  $("#iq").oninput=draw;$("#ib").onchange=draw;draw();
+}
+V.recheck = () => { const r=D.recheck, st=P.filter(p=>p.cycle==="stale"||p.cycle==="mixed"); return `
+  <h2>Pages to refresh (${st.length}): dates withheld because the page is from a prior cycle</h2>`+table(["Program","Page note"],st.map(p=>[short(p.name),trunc(p.pageCycle||p.staleness,160)]))+
+  `<h2>Open items</h2><ul>${r.open.map(o=>'<li>'+esc(o)+'</li>').join('')}</ul>`; };
+
+function show(id){
+  if(!V[id])id="overview";
+  $("#tabs").innerHTML=TABS.map(t=>'<button data-t="'+t[0]+'"'+(t[0]===id?' class="on"':'')+'>'+t[1]+'</button>').join('');
+  $("#view").innerHTML=V[id]();
+  if(id==="programs")bindPrograms();
+  if(id==="mdphd")bindMdphd();
+  if(id==="facts")bindFacts();
+  if(id==="fund")bindFund();
+  if(id==="intern")bindIntern();
+  if(id==="questions"){$("#copyq").onclick=()=>{const t=D.questions.map(c=>c[0]+"\n"+c[1].map(q=>"- "+q).join("\n")).join("\n\n");
+    try{navigator.clipboard.writeText(t);$("#copyq").textContent="Copied"}catch(e){$("#copyq").textContent="Copy failed"}}}
+  try{history.replaceState(null,"","#"+id)}catch(e){}
+}
+$("#tabs").addEventListener("click",e=>{const t=e.target.dataset&&e.target.dataset.t; if(t)show(t)});
+show((location.hash||"#overview").slice(1));
+})();
+</script>
+</body>
+</html>
