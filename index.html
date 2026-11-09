@@ -108,8 +108,26 @@ V.programs = () => {
   </div>
   <div class="tw"><table id="pt"><thead></thead><tbody></tbody></table></div>`;
 };
+const MIRROR=/ai-analytics|grantome|api\.reporter|conductscience|expertinstitute|doximity|healthgrades/i;
+const norm=u=>String(u).replace(/^http:/,"https:").replace(/\/(index\.html?)?$/,"").replace(/#.*$/,"").replace("://www.","://");
+function linkGroups(p){
+  const seg=u=>{try{const U=new URL(u),parts=U.pathname.split("/").filter(Boolean).map(x=>decodeURIComponent(x).replace(/\.html?$/,"").replace(/[-_]+/g," ")).filter(x=>!/^(index|home|node|\d+)$/i.test(x));const last=parts.slice(-2).join(" / ");return last||U.hostname.replace(/^www\./,"")}catch(e){return u}};
+  const all=[]; const add=(u,g)=>{if(!u||!/^https?:/.test(u)||MIRROR.test(u))return;u=String(u).trim();if(!all.some(a=>norm(a.u)===norm(u)))all.push({u,g})};
+  (p.urls||[]).forEach(u=>add(u)); ((FX[p.id]||{}).src||[]).forEach(u=>add(u)); ((IN[p.id]||{}).src||[]).forEach(u=>add(u,"Intern year"));
+  const f=FD[p.id]||{}; ["k12","r38"].forEach(k=>(f[k]||[]).forEach(x=>add(x.src,"Funding"))); (f.other||[]).forEach(x=>add(x.src,"Funding")); if(f.outcomes)add(f.outcomes.source,"Outcomes");
+  const cls=a=>{if(a.g)return a.g;const t=a.u.toLowerCase();
+    if(/appl|admission|how-to|match|interview/.test(t))return "Apply";
+    if(/resident|roster|alumni|graduat|fellows|class/.test(t))return "Residents and alumni";
+    if(/research|scientist|soar|ipower|track/.test(t))return "Research";
+    if(/curricul|rotation|academic|training|overview|clinical|education|internship|didactic/.test(t))return "Curriculum and rotations";
+    return "Program home"};
+  const order=["Program home","Apply","Curriculum and rotations","Intern year","Residents and alumni","Research","Funding","Outcomes"], g={};
+  all.forEach(a=>{const k=cls(a);(g[k]=g[k]||[]).push(a)});
+  return order.filter(k=>g[k]).map(k=>'<div class="kv"><b>'+esc(k)+':</b> '+g[k].map(a=>'<a href="'+esc(a.u)+'" target="_blank" rel="noopener">'+esc(trunc(seg(a.u),44))+'</a>').join(" · ")+'</div>').join("");
+}
 const kv=(l,v)=> v?'<div class="kv"><b>'+esc(l)+':</b> '+esc(v)+'</div>':'';
-function detail(p){
+function detail(p){ return detail0(p).replace(/<div><h4>[^<]*<\/h4><\/div>/g,''); }
+function detail0(p){
   const lenTxt = p.lenPage||p.lenFreida ? ((p.lenPage||'not stated')+(p.lenFreida?' (FREIDA '+p.lenFreida+')':'')):'';
   const cyc = p.cycle==='current'?'current 2026-27':p.cycle==='stale'?'stale (prior cycle)':p.cycle==='mixed'?'mixed: some current values, rest withheld':p.cycle==='undated'?'undated':'no application info';
   const ev = EV.filter(e=>e.id===p.id);
@@ -122,7 +140,7 @@ function detail(p){
      (ev.length?'<div class="kv"><b>Named graduates:</b> '+ev.map(e=>esc(e.grad)+' ('+esc(e.cls)+(e.hasK==='Y'?', K':'')+')').join('; ')+'</div>':'')+'</div>'+
    '<div><h4>Funding flags</h4>'+kv('P30',p.p30)+kv('K12',p.k12)+kv('R38/R25',p.r38)+'</div>'+
    '<div><h4>Context</h4>'+kv('Cost of living index',p.col)+kv('Rent',p.rent)+kv('Travel from Philadelphia',p.travel)+'</div>'+
-   '<div><h4>Sources</h4>'+(p.urls.length?links(p.urls):'<span class="mut">none recorded</span>')+'</div>'+
+   '<div><h4>Links</h4>'+(linkGroups(p)||'<span class="mut">none recorded</span>')+'</div>'+
    '</div>';
 }
 function bindPrograms(){
