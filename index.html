@@ -57,9 +57,10 @@ a{color:var(--acc)}
 <script src="facts.js"></script>
 <script src="fund.js"></script>
 <script src="intern.js"></script>
+<script src="profiles.js"></script>
 <script>
 (function(){
-const IN = window.INTERN||{}, FD = window.FUND||{}, FX = window.FACTS||{}, D = window.DATA, P = window.PROGRAMS, EV = window.EVIDENCE, CF = window.CONFLICTS, UN = window.UNCONF, AU = window.AUDIT, QL = window.QUALITY;
+const PR = window.PROFILES||{}, IN = window.INTERN||{}, FD = window.FUND||{}, FX = window.FACTS||{}, D = window.DATA, P = window.PROGRAMS, EV = window.EVIDENCE, CF = window.CONFLICTS, UN = window.UNCONF, AU = window.AUDIT, QL = window.QUALITY;
 const $ = (s,r=document)=>r.querySelector(s);
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const store = {
@@ -126,6 +127,7 @@ function linkGroups(p){
   return order.filter(k=>g[k]).map(k=>'<div class="kv"><b>'+esc(k)+':</b> '+g[k].map(a=>'<a href="'+esc(a.u)+'" target="_blank" rel="noopener">'+esc(trunc(seg(a.u),44))+'</a>').join(" · ")+'</div>').join("");
 }
 const kv=(l,v)=> v?'<div class="kv"><b>'+esc(l)+':</b> '+esc(v)+'</div>':'';
+function pn(e){const x=PR[e.program+"|"+e.grad];return x?'<a href="'+esc(x.u)+'" target="_blank" rel="noopener" title="'+esc(x.w)+'">'+esc(e.grad)+'</a>':esc(e.grad)}
 function detail(p){ return detail0(p).replace(/<div><h4>[^<]*<\/h4><\/div>/g,''); }
 function detail0(p){
   const lenTxt = p.lenPage||p.lenFreida ? ((p.lenPage||'not stated')+(p.lenFreida?' (FREIDA '+p.lenFreida+')':'')):'';
@@ -137,7 +139,7 @@ function detail0(p){
    '<div><h4>Training and research</h4>'+kv('Research',p.research)+kv('MD/PhD stance',p.mdphdStance)+'</div>'+
    '<div><h4>Application ('+esc(cyc)+')</h4>'+kv('Deadline',p.deadline)+kv('Signaling',p.signals)+kv('Supplemental',p.supp)+kv('Step 2',p.step2)+kv('Interviews',p.interviews)+kv('Open house',p.openHouse)+kv('Visa',p.visa)+'</div>'+
    '<div><h4>MD/PhD and K</h4>'+kv('MD/PhD named 2016-26',p.named)+kv('With K-type award',p.k)+
-     (ev.length?'<div class="kv"><b>Named graduates:</b> '+ev.map(e=>esc(e.grad)+' ('+esc(e.cls)+(e.hasK==='Y'?', K':'')+')').join('; ')+'</div>':'')+'</div>'+
+     (ev.length?'<div class="kv"><b>Named graduates:</b> '+ev.map(e=>pn(e)+' ('+esc(e.cls)+(e.hasK==='Y'?', K':'')+')').join('; ')+'</div>':'')+'</div>'+
    '<div><h4>Funding flags</h4>'+kv('P30',p.p30)+kv('K12',p.k12)+kv('R38/R25',p.r38)+'</div>'+
    '<div><h4>Context</h4>'+kv('Cost of living index',p.col)+kv('Rent',p.rent)+kv('Travel from Philadelphia',p.travel)+'</div>'+
    '<div><h4>Links</h4>'+(linkGroups(p)||'<span class="mut">none recorded</span>')+'</div>'+
@@ -205,7 +207,7 @@ V.mdphd = () => {
   <h2>Programs with a verified MD/PhD K holder</h2>`+
   table(["Program","Graduates with K","MD/PhD named"],kProgs.map(p=>[short(p.name),p.k,p.namedN]))+
   `<h2>Verified K holders (${kRows.length})</h2>`+
-  table(["Program","Graduate","Class","K award","Evidence"],kRows.map(e=>[short(e.program),e.grad,e.cls,String(e.kAward).replace(/ \(.*$/,""),H(links(e.urls,'evidence'))]))+
+  table(["Program","Graduate","Class","K award","Evidence"],kRows.map(e=>[short(e.program),H(pn(e)),e.cls,String(e.kAward).replace(/ \(.*$/,""),H(links(e.urls,'evidence'))]))+
   `<h2>All named graduates</h2><div class="ctl"><input type="search" id="eq" placeholder="Filter by name, program, class..."><select id="ef"><option value="">All</option><option value="K">Has K</option></select><span id="ecnt" class="mut"></span></div><div id="etab"></div>`+
   `<details><summary>Method and K99/R00 screen</summary><p>${esc(D.k.k99)}</p><ul>${D.k.method.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul></details>`;
 };
@@ -214,7 +216,7 @@ function bindMdphd(){
     const rows=EV.filter(e=>{ if(q&&(e.program+" "+e.grad+" "+e.cls+" "+e.notes).toLowerCase().indexOf(q)<0)return false;
       if(f==="K"&&e.hasK!=="Y")return false; return true});
     $("#ecnt").textContent=rows.length+" of "+EV.length;
-    $("#etab").innerHTML=table(["Program","Graduate","Class","K award","Evidence"],rows.map(e=>[short(e.program),e.grad,e.cls,String(e.kAward).replace(/ \(.*$/,""),H(links(e.urls,'evidence'))]))};
+    $("#etab").innerHTML=table(["Program","Graduate","Class","K award","Evidence"],rows.map(e=>[short(e.program),H(pn(e)),e.cls,String(e.kAward).replace(/ \(.*$/,""),H(links(e.urls,'evidence'))]))};
   render(); $("#eq").addEventListener("input",render); $("#ef").addEventListener("change",render);
 }
 
