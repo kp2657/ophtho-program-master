@@ -66,7 +66,7 @@ const store = {
   get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
-const TABS=[["overview","Overview"],["programs","Programs"],["facts","Program facts"],["fund","Funding & outcomes"],["intern","Intern year"],["mdphd","MD/PhD + K"],["calendar","Calendar & rules"],["stats","Match stats"],["tracks","Research tracks"],["questions","Resident questions"],["quality","Reliability & conflicts"],["recheck","Recheck & open items"]];
+const TABS=[["overview","Overview"],["programs","Programs"],["facts","Program facts"],["fund","Funding & outcomes"],["intern","Intern year"],["mdphd","MD/PhD + K"],["calendar","Calendar & rules"],["stats","Match stats"],["tracks","Research tracks"],["questions","Resident questions"],["recheck","To update"],["quality","Data notes"]];
 const links = (u,label)=> (u||[]).map((x,i)=>'<a href="'+esc(x)+'" target="_blank" rel="noopener">'+esc(label||'src')+(u.length>1?(' '+(i+1)):'')+'</a>').join(' ');
 const table=(head,rows)=>'<div class="tw"><table><thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+(typeof c==='object'&&c&&c.html!=null?c.html:esc(c))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 const H = s => ({html:s});
@@ -80,23 +80,15 @@ V.overview = () => {
   const h=D.k.headline, cur=P.filter(p=>p.cycle==='current').length, st=P.filter(p=>p.cycle==='stale'||p.cycle==='mixed').length;
   return `<div class="cards">
     <div class="card"><div class="big">${kProgs.length} / ${P.length}</div><div>programs with a verified MD/PhD graduate holding a K-type award (${esc(h.window)})</div></div>
-    <div class="card"><div class="big">${kTotal}</div><div>graduates with a K award (${h.withoutGokoffski} if Gokoffski's 2016 residency year, at the window edge, is excluded). Three of these (Hwang, Do, Rudell) have the residency year inferred from faculty-start timing or a directory, labeled in the evidence table</div></div>
-    <div class="card"><div class="big">${namedTotal}</div><div>MD/PhD graduates named with evidence (a floor, not a census)</div></div>
-    <div class="card"><div class="big">${cur} / ${P.length}</div><div>programs with 2026-27 application details; ${st} have stale pages, so their dates are blank</div></div>
+    <div class="card"><div class="big">${kTotal}</div><div>MD/PhD graduates with a K award (3 have an inferred residency year)</div></div>
+    <div class="card"><div class="big">${namedTotal}</div><div>MD/PhD graduates named (a minimum count)</div></div>
+    <div class="card"><div class="big">${cur} / ${P.length}</div><div>programs with 2026-27 application details; the rest are blank until pages update</div></div>
     <div class="card"><div class="big">${D.stats.rows[4][1][7]}</div><div>matched in 2026 of ${D.stats.rows[2][1][7]} rank lists (${D.stats.rows[5][1][7]}), ${D.stats.rows[7][1][7]} positions</div></div>
     <div class="card"><div class="big">15</div><div>signals this cycle; 15 interviews max per applicant; all interviews virtual</div></div>
   </div>
   <div class="note">${esc(D.meta.note)}</div>
-  <h2>What is in this site</h2>
-  <ul>
-    <li><b>Programs</b>: the ${P.length} programs with a named MD/PhD graduate, with filters; click a row for every field and source links. Your tier, apply, signal and notes columns are saved in this browser.</li>
-    <li><b>MD/PhD + K</b>: counts by program, ${EV.length} confirmed MD/PhD graduates, and the verified K holders.</li>
-    <li><b>Calendar & rules</b>, <b>Match stats</b>, <b>Research tracks</b>, <b>Resident questions</b>.</li>
-    <li><b>Reliability & conflicts</b>: how far each column can be trusted, page-vs-FREIDA conflicts.</li>
-    <li><b>Recheck & open items</b>: pages to refresh when 2027-28 information posts.</li>
-  </ul>
-  <h2>Sources</h2>
-  <ul>${D.meta.sources.map(s=>'<li>'+(s[1]?'<a href="'+esc(s[1])+'" target="_blank" rel="noopener">'+esc(s[0])+'</a>':esc(s[0]))+'</li>').join('')}</ul>`;
+  <p class="mut">Tabs: Programs, Program facts, Funding &amp; outcomes, Intern year, MD/PhD + K, Calendar &amp; rules, Match stats, Research tracks, Resident questions. Your tier, apply, signal and notes are saved in this browser only.</p>
+  <details><summary>Sources</summary><ul>${D.meta.sources.map(s=>'<li>'+(s[1]?'<a href="'+esc(s[1])+'" target="_blank" rel="noopener">'+esc(s[0])+'</a>':esc(s[0]))+'</li>').join('')}</ul></details>`;
 };
 
 // ---------- programs ----------
@@ -110,7 +102,7 @@ V.programs = () => {
   <div class="ctl">
     <input type="search" id="q" placeholder="Search anything...">
     <select id="st"><option value="">All states</option>${states.map(s=>'<option>'+esc(s)+'</option>').join('')}</select>
-    <select id="f"><option value="">All programs</option><option value="k">Has K grad</option><option value="md">Has MD/PhD named</option><option value="cur">Current 2026-27 page</option><option value="stale">Stale or mixed page</option><option value="conf">Length/size conflict</option><option value="acc">New or on warning</option><option value="signal">Signaled</option><option value="apply">Applying</option></select>
+    <select id="f"><option value="">All programs</option><option value="k">Has K grad</option><option value="md">Has MD/PhD named</option><option value="cur">Current 2026-27 page</option><option value="stale">Stale or mixed page</option><option value="signal">Signaled</option><option value="apply">Applying</option></select>
     <span id="cnt" class="mut"></span><span id="sigcount" class="mut"></span>
     <button class="b" id="exp">Export my columns</button><button class="b" id="exptab">Export table CSV</button>
   </div>
@@ -122,16 +114,15 @@ function detail(p){
   const cyc = p.cycle==='current'?'current 2026-27':p.cycle==='stale'?'stale (prior cycle)':p.cycle==='mixed'?'mixed: some current values, rest withheld':p.cycle==='undated'?'undated':'no application info';
   const ev = EV.filter(e=>e.id===p.id);
   return '<div class="dg">'+
-   '<div><h4>Identity</h4>'+kv('City',p.city)+kv('State',p.state)+kv('Sponsor',p.sponsor)+kv('ACGME status',p.accr)+kv('Flag',p.newFlag&&p.newFlag!=='no'?p.newFlag:'')+'</div>'+
-   '<div><h4>Size and structure</h4>'+kv('Length',lenTxt)+kv('Residents/yr (page)',p.resPage)+kv('Positions (FREIDA)',p.posFreida)+kv('Conflict',p.conflict&&!/^none/i.test(p.conflict)?p.conflict:'')+kv('Intern year',p.intern)+kv('Intern site',p.internSite)+kv('Entry level',p.entry)+'</div>'+
-   '<div><h4>Training and research</h4>'+kv('Research',p.research)+kv('MD/PhD stance',p.mdphdStance)+kv('Outcomes (program claims)',p.outcomes)+'</div>'+
-   '<div><h4>Application ('+esc(cyc)+')</h4>'+kv('Deadline',p.deadline)+kv('Signaling',p.signals)+kv('Supplemental',p.supp)+kv('Step 2',p.step2)+kv('Interviews',p.interviews)+kv('Open house',p.openHouse)+kv('Visa',p.visa)+kv('Mechanics',p.mech)+kv('Page cycle note',p.pageCycle)+kv('Staleness note',p.staleness)+
-     (p.scrubbed.length?'<div class="kv mut">Withheld as prior-cycle or undated-stale: '+esc(p.scrubbed.join(', '))+'</div>':'')+(p.fromSummary.length?'<div class="kv mut">From Oct 2026 project summary (verify on page): '+esc(p.fromSummary.join(', '))+'</div>':'')+'</div>'+
-   '<div><h4>MD/PhD and K</h4>'+kv('MD/PhD named 2016-26',p.named)+kv('With K-type award',p.k)+kv('Roster coverage',p.rosterCov)+kv('Roster confidence',p.rosterConf)+kv('Current MD/PhD residents',p.currentMdphd)+kv('Roster notes',p.rosterNotes)+kv('Legacy hand counts (superseded)',p.legacyMd||p.legacyK?('MD/PhD '+p.legacyMd+', K '+p.legacyK):'')+kv('Count disagreement',p.disagree)+
+   '<div><h4>Identity</h4>'+kv('City',p.city)+kv('State',p.state)+kv('Sponsor',p.sponsor)+'</div>'+
+   '<div><h4>Size and structure</h4>'+kv('Length',lenTxt)+kv('Residents/yr (page)',p.resPage)+kv('Intern year',p.intern)+kv('Intern site',p.internSite)+'</div>'+
+   '<div><h4>Training and research</h4>'+kv('Research',p.research)+kv('MD/PhD stance',p.mdphdStance)+'</div>'+
+   '<div><h4>Application ('+esc(cyc)+')</h4>'+kv('Deadline',p.deadline)+kv('Signaling',p.signals)+kv('Supplemental',p.supp)+kv('Step 2',p.step2)+kv('Interviews',p.interviews)+kv('Open house',p.openHouse)+kv('Visa',p.visa)+'</div>'+
+   '<div><h4>MD/PhD and K</h4>'+kv('MD/PhD named 2016-26',p.named)+kv('With K-type award',p.k)+
      (ev.length?'<div class="kv"><b>Named graduates:</b> '+ev.map(e=>esc(e.grad)+' ('+esc(e.cls)+(e.hasK==='Y'?', K':'')+')').join('; ')+'</div>':'')+'</div>'+
-   '<div><h4>Funding flags</h4>'+kv('Active K awards (FY25)',p.kActive)+kv('P30',p.p30)+kv('T32',p.t32)+kv('K12',p.k12)+kv('R38/R25',p.r38)+kv('Audited facts',p.audited)+'</div>'+
+   '<div><h4>Funding flags</h4>'+kv('P30',p.p30)+kv('K12',p.k12)+kv('R38/R25',p.r38)+'</div>'+
    '<div><h4>Context</h4>'+kv('Cost of living index',p.col)+kv('Rent',p.rent)+kv('Travel from Philadelphia',p.travel)+'</div>'+
-   '<div><h4>Sources</h4>'+(p.urls.length?links(p.urls):'<span class="mut">none recorded</span>')+kv('Pages read',p.pagesRead)+'</div>'+
+   '<div><h4>Sources</h4>'+(p.urls.length?links(p.urls):'<span class="mut">none recorded</span>')+'</div>'+
    '</div>';
 }
 function bindPrograms(){
@@ -194,19 +185,18 @@ V.mdphd = () => {
     <div class="card"><div class="big">${kProgs.length}</div><div>programs (rows below sum to ${kTotal} graduates)</div></div>
     <div class="card"><div class="big">${namedTotal}</div><div>MD/PhD graduates named (3 with residency year inferred) (a floor, not a census)</div></div></div>
   <h2>Programs with a verified MD/PhD K holder</h2>`+
-  table(["Program","Graduates with K","MD/PhD named","Roster confidence"],kProgs.map(p=>[short(p.name),p.k,p.namedN,p.rosterConf]))+
-  `<h3>Most MD/PhD graduates named</h3>`+table(["Program","Named"],P.slice().sort((a,b)=>b.namedN-a.namedN).slice(0,8).map(p=>[short(p.name),p.namedN]))+
+  table(["Program","Graduates with K","MD/PhD named"],kProgs.map(p=>[short(p.name),p.k,p.namedN]))+
   `<h2>Verified K holders (${kRows.length})</h2>`+
-  table(["Program","Graduate","Class","K award","Audit","Found by","Evidence"],kRows.map(e=>[short(e.program),e.grad,e.cls,e.kAward,e.audit,e.foundBy,H(links(e.urls,'evidence'))]))+
+  table(["Program","Graduate","Class","K award","Evidence"],kRows.map(e=>[short(e.program),e.grad,e.cls,String(e.kAward).replace(/ \(.*$/,""),H(links(e.urls,'evidence'))]))+
   `<h2>All named graduates</h2><div class="ctl"><input type="search" id="eq" placeholder="Filter by name, program, class..."><select id="ef"><option value="">All</option><option value="K">Has K</option></select><span id="ecnt" class="mut"></span></div><div id="etab"></div>`+
-  `<h2>K99/R00 screen</h2><p>${esc(D.k.k99)}</p><h2>Method</h2><ul>${D.k.method.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul>`;
+  `<details><summary>Method and K99/R00 screen</summary><p>${esc(D.k.k99)}</p><ul>${D.k.method.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul></details>`;
 };
 function bindMdphd(){
   const render=()=>{const q=($("#eq").value||"").toLowerCase(), f=$("#ef").value;
     const rows=EV.filter(e=>{ if(q&&(e.program+" "+e.grad+" "+e.cls+" "+e.notes).toLowerCase().indexOf(q)<0)return false;
       if(f==="K"&&e.hasK!=="Y")return false; return true});
     $("#ecnt").textContent=rows.length+" of "+EV.length;
-    $("#etab").innerHTML=table(["Program","Graduate","Class","K award","Audit","Notes","Evidence"],rows.map(e=>[short(e.program),e.grad,e.cls,e.kAward,e.audit,e.notes,H(links(e.urls,'evidence'))]))};
+    $("#etab").innerHTML=table(["Program","Graduate","Class","K award","Evidence"],rows.map(e=>[short(e.program),e.grad,e.cls,String(e.kAward).replace(/ \(.*$/,""),H(links(e.urls,'evidence'))]))};
   render(); $("#eq").addEventListener("input",render); $("#ef").addEventListener("change",render);
 }
 
@@ -236,14 +226,14 @@ function bindFacts(){
     $("#ftab").innerHTML=table(["Program","Positions/yr","Years","Intern year","Research time / track","Funding","MD/PhD stance","MD/PhD residents now","Roster","Sources"],
       rows.map(p=>{const x=FX[p.id]||{};
         const n=x.n===""||x.n==null?"":(x.n+(x.names&&x.names.length?" ("+x.names.join(", ")+")":""));
-        return [short(p.name)+", "+p.state,String(x.pos==null?"":x.pos),String(x.len==null?"":x.len),x.intern||"",[x.research,x.track?("Track: "+x.track):""].filter(Boolean).join(" | "),x.funding||"",x.stance||"",n,x.cycle||x.sig||"",H(links(x.src,"page"))]}))};
+        return [short(p.name)+", "+p.state,String(x.pos==null?"":x.pos),String(x.len==null?"":x.len),x.intern||"",trunc([x.research,x.track?("Track: "+x.track):""].filter(Boolean).join(" | "),160),x.funding||"",trunc(x.stance||"",90),n,x.cycle||"",H(links(x.src,"page"))]}))};
   $("#fq").oninput=draw; draw();
 }
 V.fund = () => `<h2>Institutional career-development funding and published outcomes</h2>
  <p class="note">Award numbers, institutions and years are checked in NIH RePORTER (fiscal year range shown). "Active" means funded in FY2025 or FY2026. Outcomes appear only where a program page or grant abstract states numbers.</p>
  <div class="ctl"><input id="gq" placeholder="Filter programs"> <label><input type="checkbox" id="gk"> Has active K12</label> <label><input type="checkbox" id="go"> Has outcomes data</label></div><div id="gtab"></div>`;
 function bindFund(){
-  const aw=(a)=>a.length?a.map(x=>(x.num||"stated, no number found")+(x.org?" ("+x.org+", "+x.status+")":" ("+x.status+")")).join("; "):"";
+  const aw=(a)=>a.filter(x=>/^active|stated/.test(x.status)).length?a.filter(x=>/^active|stated/.test(x.status)).map(x=>(x.num||"stated, no number found")+(x.org?" ("+x.org+", "+x.status+")":" ("+x.status+")")).join("; "):"";
   const draw=()=>{const q=($("#gq").value||"").toLowerCase(),k=$("#gk").checked,o=$("#go").checked;
     const rows=P.filter(p=>{const f=FD[p.id]||{k12:[],t32:[],r38:[],other:[]};
       if(q&&(p.name+" "+p.state).toLowerCase().indexOf(q)<0)return false;
@@ -262,7 +252,7 @@ function bindIntern(){
   const draw=()=>{const q=($("#iq").value||"").toLowerCase(),b=$("#ib").value;
     const rows=P.filter(p=>{const x=IN[p.id]||{};if(q&&(p.name+" "+p.state).toLowerCase().indexOf(q)<0)return false;if(b&&x.base!==b)return false;return true}).sort((a,c)=>a.name.localeCompare(c.name));
     $("#itab").innerHTML=table(["Program","Base","How it is matched","Where","Ophtho months","Rotations","Call / schedule","Caveat","Sources"],
-      rows.map(p=>{const x=IN[p.id]||{};return [short(p.name)+", "+p.state,x.base||"",[x.structure,x.match].filter(Boolean).join(". "),x.sites||"",x.oph||"",x.rot||"",x.call||"",[x.caveat,x.date&&("Page: "+x.date)].filter(Boolean).join(" "),H(links(x.src,"page"))]}))};
+      rows.map(p=>{const x=IN[p.id]||{};return [short(p.name)+", "+p.state,x.base||"",[x.structure,trunc(x.match,140)].filter(Boolean).join(". "),trunc(x.sites||"",90),x.oph||"",trunc(x.rot||"",260),trunc(x.call||"",90),x.caveat?trunc(x.caveat,110):"",H(links(x.src,"page"))]}))};
   $("#iq").oninput=draw;$("#ib").onchange=draw;draw();
 }
 V.recheck = () => { const r=D.recheck, st=P.filter(p=>p.cycle==="stale"||p.cycle==="mixed"); return `
